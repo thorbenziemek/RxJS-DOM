@@ -302,7 +302,12 @@
       var normalizeError = settings.normalizeError;
       var normalizeSuccess = settings.normalizeSuccess;
 
+      var setLoading = function(isLoading) {
+        settings.loadingObserver && settings.loadingObserver.onNext(isLoading);
+      }
+
       var processResponse = function(xhr, e){
+        setLoading(false);
         var status = xhr.status === 1223 ? 204 : xhr.status;
         if ((status >= 200 && status <= 300) || status === 0 || status === '') {
           o.onNext(normalizeSuccess(e, xhr, settings));
@@ -320,6 +325,8 @@
       }
 
       try {
+        setLoading(true);
+
         if (settings.user) {
           xhr.open(settings.method, settings.url, settings.async, settings.user, settings.password);
         } else {
@@ -336,6 +343,7 @@
         xhr.timeout = settings.timeout;
         xhr.ontimeout = function (e) {
           settings.progressObserver && settings.progressObserver.onError(e);
+          setLoading(false);
           o.onError(normalizeError(e, xhr, 'timeout'));
         };
 
@@ -361,6 +369,7 @@
           };
 
           xhr.onabort = function(e) {
+            setLoading(false);
             settings.progressObserver && settings.progressObserver.onError(e);
             o.onError(normalizeError(e, xhr, 'abort'));
             state.isDone = true;
@@ -386,6 +395,7 @@
 
         xhr.send(settings.hasContent && settings.body || null);
       } catch (e) {
+        setLoading(false);
         o.onError(e);
       }
 
